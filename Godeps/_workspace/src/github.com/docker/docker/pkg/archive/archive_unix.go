@@ -3,10 +3,11 @@
 package archive
 
 import (
-	"archive/tar"
 	"errors"
 	"os"
 	"syscall"
+
+	"github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar"
 )
 
 // canonicalTarNameForPath returns platform-specific filepath
@@ -35,8 +36,8 @@ func setHeaderForSpecialDevice(hdr *tar.Header, ta *tarAppender, name string, st
 	inode = uint64(s.Ino)
 
 	// Currently go does not fil in the major/minors
-	if s.Mode&syscall.S_IFBLK != 0 ||
-		s.Mode&syscall.S_IFCHR != 0 {
+	if s.Mode&syscall.S_IFBLK == syscall.S_IFBLK ||
+		s.Mode&syscall.S_IFCHR == syscall.S_IFCHR {
 		hdr.Devmajor = int64(major(uint64(s.Rdev)))
 		hdr.Devminor = int64(minor(uint64(s.Rdev)))
 	}

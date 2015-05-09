@@ -1,12 +1,12 @@
 package buildpacker
 
 import (
-	"archive/tar"
 	"bytes"
 	"fmt"
-	"log"
-	"time"
+	"io/ioutil"
+	"strings"
 
+	dkr "github.com/docker/docker/api/client"
 	docker "github.com/fsouza/go-dockerclient"
 )
 
@@ -14,24 +14,14 @@ func Build(endpoint string, certpath string) {
 	cert := fmt.Sprintf("%s/cert.pem", certpath)
 	key := fmt.Sprintf("%s/key.pem", certpath)
 	ca := fmt.Sprintf("%s/ca.pem", certpath)
-
 	client, err := docker.NewTLSClient(endpoint, cert, key, ca)
-	if err != nil {
-		log.Fatal(err)
-	}
+	outputbuf, errbuf := bytes.NewBuffer(nil), bytes.NewBuffer(nil)
+	reader := strings.NewReader("FROM redis")
+	inputbuf := ioutil.NopCloser(reader)
+	endpoint = "192.168.59.103:2376"
 
-	t := time.Now()
-	inputbuf, outputbuf := bytes.NewBuffer(nil), bytes.NewBuffer(nil)
-	tr := tar.NewWriter(inputbuf)
-	tr.WriteHeader(&tar.Header{Name: "Dockerfile", Size: 10, ModTime: t, AccessTime: t, ChangeTime: t})
-	tr.Write([]byte("FROM ubuntu\n"))
-	tr.Close()
-	opts := docker.BuildImageOptions{
-		Name:         "test",
-		InputStream:  inputbuf,
-		OutputStream: outputbuf,
-	}
-	if err := client.BuildImage(opts); err != nil {
-		log.Fatal(err)
-	}
+	dcli := dkr.NewDockerCli(inputbuf, outputbuf, errbuf, key, "tcp", endpoint, client.TLSConfig)
+	err = dcli.CmdBuild("-")
+	fmt.Println(err)
+	fmt.Println(outputbuf)
 }

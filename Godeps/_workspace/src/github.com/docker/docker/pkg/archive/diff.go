@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"archive/tar"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar"
 
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/system"

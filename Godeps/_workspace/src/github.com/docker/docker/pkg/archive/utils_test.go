@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"archive/tar"
 	"bytes"
 	"fmt"
 	"io"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar"
 )
 
 var testUntarFns = map[string]func(string, io.Reader) error{
