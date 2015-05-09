@@ -18,8 +18,7 @@ func Build(endpoint string, certpath string) {
 	outputbuf, errbuf := bytes.NewBuffer(nil), bytes.NewBuffer(nil)
 	reader := strings.NewReader("FROM redis")
 	inputbuf := ioutil.NopCloser(reader)
-	endpoint = "192.168.59.103:2376"
-
+	endpoint = strings.TrimPrefix(endpoint, "tcp://")
 	dcli := dkr.NewDockerCli(inputbuf, outputbuf, errbuf, key, "tcp", endpoint, client.TLSConfig)
 	err = dcli.CmdBuild("-")
 	fmt.Println(err)
