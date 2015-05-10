@@ -23,7 +23,7 @@ const (
 	DefaultProto    = "tcp"
 )
 
-func New(buildpack string, codepath string, localbuildpath string) *BPacker {
+func New(buildpack string, localbuildpath string) *BPacker {
 	return &BPacker{
 		buildpack:      buildpack,
 		codepath:       codepath,
