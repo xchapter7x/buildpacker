@@ -11,7 +11,8 @@ import (
 var _ = Describe("Buildpacker", func() {
 	Context("test poc build", func() {
 		It("should do something?", func() {
-			Build(os.Getenv("DOCKER_HOST"), os.Getenv("DOCKER_CERT_PATH"))
+			bdPkr := New("https://github.com/ryandotsmith/null-buildpack/archive/master.zip", "./")
+			bdPkr.Build(os.Getenv("DOCKER_HOST"), os.Getenv("DOCKER_CERT_PATH"))
 			Ω(true).Should(Equal(false))
 		})
 	})
