@@ -26,14 +26,12 @@ const (
 func New(buildpack string, localbuildpath string) *BPacker {
 	return &BPacker{
 		buildpack:      buildpack,
-		codepath:       codepath,
 		localbuildpath: localbuildpath,
 	}
 }
 
 type BPacker struct {
 	buildpack      string
-	codepath       string
 	localbuildpath string
 }
 
