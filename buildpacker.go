@@ -41,8 +41,10 @@ func (s *BPacker) Build(endpoint string, certpath string) {
 	ca := fmt.Sprintf(caFileFormat, certpath)
 	client, err := docker.NewTLSClient(endpoint, cert, key, ca)
 	outputbuf, errbuf := bytes.NewBuffer(nil), bytes.NewBuffer(nil)
-	ioutil.WriteFile("./Dockerfile", []byte(s.createDockerFile()), os.ModePerm)
-
+	dockerfileString := s.CreateDockerFile()
+	fmt.Println(dockerfileString)
+	ioutil.WriteFile("./Dockerfile", []byte(dockerfileString), os.ModePerm)
+	defer os.Remove("Dockerfile")
 	reader := strings.NewReader("")
 	inputbuf := ioutil.NopCloser(reader)
 	endpoint = strings.TrimPrefix(endpoint, fmt.Sprintf("%s://", DefaultProto))
@@ -50,23 +52,23 @@ func (s *BPacker) Build(endpoint string, certpath string) {
 	err = dcli.CmdBuild("./")
 	fmt.Println(err)
 	fmt.Println(outputbuf)
-	os.Remove("Dockerfile")
 }
 
-func (s *BPacker) createDockerFile() (dockerFileString string) {
+func (s *BPacker) CreateDockerFile() (dockerFileString string) {
 	var buffer bytes.Buffer
 	buildpacks := fmt.Sprintf("%s/%s", BuildpackerRoot, BuildpackDir)
 	builddir := fmt.Sprintf("%s/%s", BuildpackerRoot, BuildDir)
 	buildpackZipPath := fmt.Sprintf("%s/%s/%s", BuildpackerRoot, BuildpackDir, BuildpackZip)
 	buffer.WriteString(fmt.Sprintf("FROM %s\n", DefaultBox))
-	buffer.WriteString("RUN apt-get install unzip \n")
+	buffer.WriteString("RUN rm /bin/sh && ln -s /bin/bash /bin/sh \n")
+	buffer.WriteString("RUN apt-get install -y unzip curl ruby gcc \n")
 	buffer.WriteString(fmt.Sprintf("RUN mkdir -p %s \n", BuildpackerRoot))
 	buffer.WriteString(fmt.Sprintf("ADD %s %s \n", s.localbuildpath, builddir))
 	buffer.WriteString(fmt.Sprintf("ADD %s %s \n", s.buildpack, buildpackZipPath))
-	buffer.WriteString(fmt.Sprintf("RUN unzip %s -d %s \n", buildpackZipPath, buildpacks))
-	buffer.WriteString(fmt.Sprintf("RUN export \"out=$(ls %s | grep -v .zip)\" && cd %s && mv $out/* ./ && rm -fR $out %s\n", buildpacks, buildpacks, buildpackZipPath))
-	buffer.WriteString(fmt.Sprintf("RUN %s/bin/compile %s/code /tmp", buildpacks, BuildpackerRoot))
+	buffer.WriteString(fmt.Sprintf("RUN unzip %s -d %s/unpacked \n", buildpackZipPath, buildpacks))
+	buffer.WriteString(fmt.Sprintf("RUN cd %s && if [ $(ls ./unpacked | wc -l) == 1 ]; then mv ./unpacked/$(ls ./unpacked) ./tmp && rm -fR ./unpacked && mv ./tmp ./unpacked; fi && rm -fR %s\n", buildpacks, buildpackZipPath))
+	buffer.WriteString(fmt.Sprintf("RUN %s/unpacked/bin/detect %s/code\n", buildpacks, BuildpackerRoot))
+	buffer.WriteString(fmt.Sprintf("RUN %s/unpacked/bin/compile %s/code /tmp\n", buildpacks, BuildpackerRoot))
 	dockerFileString = buffer.String()
-	fmt.Println(dockerFileString)
 	return
 }
