@@ -30,7 +30,7 @@ var _ = Describe("Buildpacker", func() {
 			It("should return the dockerfile we want in string format", func() {
 				dockerfileString := dfBucket.Dockerfile()
 				controlBytes, _ := ioutil.ReadFile("fixtures/Dockerfile-valid")
-				Ω(len(dockerfileString)).Should(BeEquivalentTo(len(string(controlBytes[:]))))
+				Ω(dockerfileString).Should(Equal(string(controlBytes[:])))
 			})
 		})
 	})
