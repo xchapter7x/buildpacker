@@ -1,0 +1,12 @@
+FROM ubuntu
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+RUN apt-get install -y unzip curl ruby gcc
+RUN mkdir -p /var/buildpacker
+ADD ./ /var/buildpacker/code
+ADD https://github.com/ryandotsmith/null-buildpack/archive/master.zip /var/buildpacker/buildpack/bp.zip
+RUN unzip /var/buildpacker/buildpack/bp.zip -d /var/buildpacker/buildpack/unpacked
+RUN cd /var/buildpacker/buildpack && if [ $(ls ./unpacked | wc -l) == 1 ]; then mv ./unpacked/$(ls ./unpacked) ./tmp && rm -fR ./unpacked && mv ./tmp ./unpacked; fi && rm -fR /var/buildpacker/buildpack/bp.zip
+RUN /var/buildpacker/buildpack/unpacked/bin/detect /var/buildpacker/code
+RUN /var/buildpacker/buildpack/unpacked/bin/compile /var/buildpacker/code /tmp
+
+

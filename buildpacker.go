@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"text/template"
 
 	dkr "github.com/docker/docker/api/client"
 	docker "github.com/fsouza/go-dockerclient"
@@ -30,12 +31,23 @@ func New(buildpack string, localbuildpath string) *BPacker {
 	}
 }
 
-type BPacker struct {
-	buildpack      string
-	localbuildpath string
-}
+type (
+	DockerFileBucket struct {
+		DefaultBox       string
+		BuildpackerRoot  string
+		LocalBuildPath   string
+		BuildDir         string
+		Buildpack        string
+		BuildpackZipPath string
+		BuildpackDir     string
+	}
+	BPacker struct {
+		buildpack      string
+		localbuildpath string
+	}
+)
 
-func (s *BPacker) Build(endpoint string, certpath string) {
+func (s *BPacker) Build(endpoint string, certpath string, imagename string) {
 	cert := fmt.Sprintf(certFileFormat, certpath)
 	key := fmt.Sprintf(keyFileFormat, certpath)
 	ca := fmt.Sprintf(caFileFormat, certpath)
@@ -49,26 +61,48 @@ func (s *BPacker) Build(endpoint string, certpath string) {
 	inputbuf := ioutil.NopCloser(reader)
 	endpoint = strings.TrimPrefix(endpoint, fmt.Sprintf("%s://", DefaultProto))
 	dcli := dkr.NewDockerCli(inputbuf, outputbuf, errbuf, key, DefaultProto, endpoint, client.TLSConfig)
-	err = dcli.CmdBuild("./")
+	err = dcli.CmdBuild("--force-rm=true", "--rm=true", fmt.Sprintf("--tag=\"%s\"", imagename), "./")
 	fmt.Println(err)
 	fmt.Println(outputbuf)
 }
 
-func (s *BPacker) CreateDockerFile() (dockerFileString string) {
+func (s *BPacker) CreateDockerFile() string {
+	dfBucket := DockerFileBucket{
+		DefaultBox:       DefaultBox,
+		BuildpackerRoot:  BuildpackerRoot,
+		LocalBuildPath:   s.localbuildpath,
+		BuildDir:         fmt.Sprintf("%s/%s", BuildpackerRoot, BuildDir),
+		Buildpack:        s.buildpack,
+		BuildpackZipPath: fmt.Sprintf("%s/%s/%s", BuildpackerRoot, BuildpackDir, BuildpackZip),
+		BuildpackDir:     fmt.Sprintf("%s/%s", BuildpackerRoot, BuildpackDir),
+	}
+	return dfBucket.Dockerfile()
+}
+
+func (s *DockerFileBucket) Dockerfile() string {
 	var buffer bytes.Buffer
-	buildpacks := fmt.Sprintf("%s/%s", BuildpackerRoot, BuildpackDir)
-	builddir := fmt.Sprintf("%s/%s", BuildpackerRoot, BuildDir)
-	buildpackZipPath := fmt.Sprintf("%s/%s/%s", BuildpackerRoot, BuildpackDir, BuildpackZip)
-	buffer.WriteString(fmt.Sprintf("FROM %s\n", DefaultBox))
-	buffer.WriteString("RUN rm /bin/sh && ln -s /bin/bash /bin/sh \n")
-	buffer.WriteString("RUN apt-get install -y unzip curl ruby gcc \n")
-	buffer.WriteString(fmt.Sprintf("RUN mkdir -p %s \n", BuildpackerRoot))
-	buffer.WriteString(fmt.Sprintf("ADD %s %s \n", s.localbuildpath, builddir))
-	buffer.WriteString(fmt.Sprintf("ADD %s %s \n", s.buildpack, buildpackZipPath))
-	buffer.WriteString(fmt.Sprintf("RUN unzip %s -d %s/unpacked \n", buildpackZipPath, buildpacks))
-	buffer.WriteString(fmt.Sprintf("RUN cd %s && if [ $(ls ./unpacked | wc -l) == 1 ]; then mv ./unpacked/$(ls ./unpacked) ./tmp && rm -fR ./unpacked && mv ./tmp ./unpacked; fi && rm -fR %s\n", buildpacks, buildpackZipPath))
-	buffer.WriteString(fmt.Sprintf("RUN %s/unpacked/bin/detect %s/code\n", buildpacks, BuildpackerRoot))
-	buffer.WriteString(fmt.Sprintf("RUN %s/unpacked/bin/compile %s/code /tmp\n", buildpacks, BuildpackerRoot))
-	dockerFileString = buffer.String()
+	dfTemplateString := s.dockerfileTemplateString()
+
+	if tmpl, err := template.New("Dockerfile").Parse(dfTemplateString); err == nil {
+
+		if err = tmpl.Execute(&buffer, s); err != nil {
+			panic(err)
+		}
+	}
+	return buffer.String()
+}
+
+func (s *DockerFileBucket) dockerfileTemplateString() (dockerfileTemplate string) {
+	dockerfileTemplate = `FROM {{.DefaultBox}}
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh 
+RUN apt-get install -y unzip curl ruby gcc 
+RUN mkdir -p {{.BuildpackerRoot}}
+ADD {{.LocalBuildPath}} {{.BuildDir}}
+ADD {{.Buildpack}} {{.BuildpackZipPath}}
+RUN unzip {{.BuildpackZipPath}} -d {{.BuildpackDir}}/unpacked
+RUN cd {{.BuildpackDir}} && if [ $(ls ./unpacked | wc -l) == 1 ]; then mv ./unpacked/$(ls ./unpacked) ./tmp && rm -fR ./unpacked && mv ./tmp ./unpacked; fi && rm -fR {{.BuildpackZipPath}}
+RUN {{.BuildpackDir}}/unpacked/bin/detect {{.BuildpackerRoot}}/code
+RUN {{.BuildpackDir}}/unpacked/bin/compile {{.BuildpackerRoot}}/code /tmp
+`
 	return
 }
