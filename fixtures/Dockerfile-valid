@@ -1,6 +1,6 @@
 FROM ubuntu
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh 
-RUN apt-get install -y unzip curl ruby gcc 
+RUN apt-get install -y unzip curl ruby 
 RUN mkdir -p /var/buildpacker
 ADD ./ /var/buildpacker/code
 ADD https://github.com/ryandotsmith/null-buildpack/archive/master.zip /var/buildpacker/buildpack/bp.zip

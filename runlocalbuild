@@ -1,0 +1,2 @@
+wercker build --git-domain github.com --git-owner xchapter7x --git-repository buildpacker
+

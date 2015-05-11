@@ -1,4 +1,4 @@
-box: google/golang
+box: tcnksm/gox
 
 build:
   # The steps that will be executed on build
@@ -25,3 +25,18 @@ build:
         name: go test cover
         code: |
           ./testCoverage ./... $COVERAGE_WATERMARK
+
+    - script:
+        name: go smoke build
+        code: |
+          godep go build ./cli/*.go 
+
+    - script:
+        name: cross platform build
+        code: |
+          GOPATH=$(pwd)/Godeps/_workspace/:$GOPATH gox -verbose -output="build/buildpacker_{{.OS}}_{{.Arch}}" -os="linux darwin" ./... 
+
+    - script:
+        name: add repo to artifact
+        code: |
+          cp -R ./ ${WERCKER_OUTPUT_DIR}

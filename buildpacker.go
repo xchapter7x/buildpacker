@@ -95,7 +95,7 @@ func (s *DockerFileBucket) Dockerfile() string {
 func (s *DockerFileBucket) dockerfileTemplateString() (dockerfileTemplate string) {
 	dockerfileTemplate = `FROM {{.DefaultBox}}
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh 
-RUN apt-get install -y unzip curl ruby gcc 
+RUN apt-get install -y unzip curl ruby 
 RUN mkdir -p {{.BuildpackerRoot}}
 ADD {{.LocalBuildPath}} {{.BuildDir}}
 ADD {{.Buildpack}} {{.BuildpackZipPath}}

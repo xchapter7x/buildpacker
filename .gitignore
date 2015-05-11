@@ -24,3 +24,7 @@ _testmain.go
 *.prof
 *.zip
 Dockerfile
+_builds
+_steps
+_projects
+build
