@@ -17,7 +17,7 @@ const (
 	BuildDir        = "code"
 	BuildpackDir    = "buildpack"
 	BuildpackZip    = "bp.zip"
-	DefaultBox      = "ubuntu"
+	DefaultBox      = "cloudfoundry/cflinuxfs2"
 	certFileFormat  = "%s/cert.pem"
 	keyFileFormat   = "%s/key.pem"
 	caFileFormat    = "%s/ca.pem"
